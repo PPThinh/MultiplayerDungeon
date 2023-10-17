@@ -11,6 +11,8 @@ namespace MultiplayerGame.NodeGraph.Editor
     public class RoomNodeGraphEditor : EditorWindow
     {
         private GUIStyle m_roomNodeStyle;
+        private GUIStyle m_roomNodeSelectedStyle;
+
         private static RoomNodeGraphSO m_currentRoomNodeGraph;
         private static RoomNodeSO m_currentRoomNode = null;
         private RoomNodeTypeListSO m_roomNodeTypeList;
@@ -49,15 +51,31 @@ namespace MultiplayerGame.NodeGraph.Editor
 
         private void OnEnable()
         {
-            //Define node layout style
+            // Subscribe to the inspector selection changed event
+            Selection.selectionChanged += InspectorSelectionChanged;
+
+            // Define node layout style
             m_roomNodeStyle = new GUIStyle();
             m_roomNodeStyle.normal.background = EditorGUIUtility.Load("node1") as Texture2D;
             m_roomNodeStyle.normal.textColor = Color.white;
             m_roomNodeStyle.padding = new RectOffset(_nodePadding, _nodePadding, _nodePadding, _nodePadding);
             m_roomNodeStyle.border = new RectOffset(_nodeBorder, _nodeBorder, _nodeBorder, _nodeBorder);
 
+            // Define node selected node style
+            m_roomNodeSelectedStyle = new GUIStyle();
+            m_roomNodeSelectedStyle.normal.background = EditorGUIUtility.Load("node1 on") as Texture2D;
+            m_roomNodeSelectedStyle.normal.textColor= Color.white;
+            m_roomNodeSelectedStyle.padding = new RectOffset(_nodePadding, _nodePadding, _nodePadding, _nodePadding);
+            m_roomNodeSelectedStyle.border = new RectOffset(_nodeBorder, _nodeBorder, _nodeBorder, _nodeBorder);
+
             // Load room node types
             m_roomNodeTypeList = GameResources.Instance.roomNodeTypeList;
+        }
+
+        private void OnDisable()
+        {
+            // Unsubscribe from the inspector selection changed event
+            Selection.selectionChanged -= InspectorSelectionChanged;
         }
 
         ///<summary>
@@ -161,6 +179,12 @@ namespace MultiplayerGame.NodeGraph.Editor
             {
                 ShowContextMenu(currentEvent.mousePosition);
             }
+
+            else if(currentEvent.button == 0)
+            {
+                ClearLineDrag();
+                ClearAllSelectedRoomNodes();
+            }
         }
 
         private void ShowContextMenu(Vector2 mousePosition)
@@ -172,6 +196,12 @@ namespace MultiplayerGame.NodeGraph.Editor
 
         private void CreateRoomNode(object mousePositionObj)
         {
+            if(m_currentRoomNodeGraph.roomNodeList.Count == 0)
+            {
+                // if current nodoe graph empty then add entrace room node first
+                CreateRoomNode(new Vector2(200f, 200f), m_roomNodeTypeList.list.Find(x => x.isEntrance));
+            }
+
             CreateRoomNode(mousePositionObj, m_roomNodeTypeList.list.Find(x => x.isNone));
         }
 
@@ -194,6 +224,21 @@ namespace MultiplayerGame.NodeGraph.Editor
 
             // refresh graph node dictionary
             m_currentRoomNodeGraph.OnValidate();
+        }
+
+        /// <summary>
+        /// Clear selection from all room nodes
+        /// </summary>
+        private void ClearAllSelectedRoomNodes()
+        {
+            foreach(RoomNodeSO roomNode in m_currentRoomNodeGraph.roomNodeList)
+            {
+                if(roomNode.isSelected)
+                {
+                    roomNode.isSelected = false;
+                    GUI.changed = true;
+                }
+            }
         }
 
         // case 2: mouse up event
@@ -316,10 +361,23 @@ namespace MultiplayerGame.NodeGraph.Editor
         {
             foreach(RoomNodeSO roomNode in m_currentRoomNodeGraph.roomNodeList)
             {
-                roomNode.Draw(m_roomNodeStyle);
+                if (roomNode.isSelected)
+                    roomNode.Draw(m_roomNodeSelectedStyle);
+                else
+                    roomNode.Draw(m_roomNodeStyle);
             }
 
             GUI.changed = true;
+        }
+
+        private void InspectorSelectionChanged()
+        {
+            RoomNodeGraphSO roomNodeGraph = Selection.activeObject as RoomNodeGraphSO;
+            if(roomNodeGraph != null)
+            {
+                m_currentRoomNodeGraph = roomNodeGraph;
+                GUI.changed = true;
+            }
         }
 
     }
