@@ -17,6 +17,9 @@ namespace MultiplayerGame.NodeGraph
             LoadRoomNodeDictionary();
         }
 
+        /// <summary>
+        /// Load the room node ditionary form the room node list
+        /// </summary>
         private void LoadRoomNodeDictionary()
         {
             roomNodeDictionary.Clear();
@@ -26,6 +29,16 @@ namespace MultiplayerGame.NodeGraph
             {
                 roomNodeDictionary[node.id] = node;
             }
+        }
+
+        /// <summary>
+        /// Get room node by room nodeID
+        /// </summary>
+        public RoomNodeSO GetRoomNode(string roomNodeID)
+        {
+            if(roomNodeDictionary.TryGetValue(roomNodeID, out RoomNodeSO roomNode))
+                return roomNode;
+            return null;
         }
 
 
